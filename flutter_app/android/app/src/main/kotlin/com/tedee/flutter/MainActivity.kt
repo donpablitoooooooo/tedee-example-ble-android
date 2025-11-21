@@ -60,7 +60,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "openLock" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.sendCommand(0x51.toByte())
+                            val response = withContext(Dispatchers.IO) {
+                                lockConnectionManager.sendCommand(0x51.toByte())
+                            }
                             val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
@@ -71,7 +73,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "closeLock" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.sendCommand(0x50.toByte())
+                            val response = withContext(Dispatchers.IO) {
+                                lockConnectionManager.sendCommand(0x50.toByte())
+                            }
                             val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
@@ -82,7 +86,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "pullSpring" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.sendCommand(0x52.toByte())
+                            val response = withContext(Dispatchers.IO) {
+                                lockConnectionManager.sendCommand(0x52.toByte())
+                            }
                             val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
@@ -93,7 +99,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "getLockState" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.getLockState()
+                            val response = withContext(Dispatchers.IO) {
+                                lockConnectionManager.getLockState()
+                            }
                             val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
@@ -105,7 +113,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                     scope.launch {
                         try {
                             // Pass false = lock is already connected (not being added)
-                            val response = lockConnectionManager.getDeviceSettings(false)
+                            val response = withContext(Dispatchers.IO) {
+                                lockConnectionManager.getDeviceSettings(false)
+                            }
                             val readable = response?.toString() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
@@ -117,7 +127,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                     scope.launch {
                         try {
                             // Pass false = lock is already connected (not being added)
-                            val response = lockConnectionManager.getFirmwareVersion(false)
+                            val response = withContext(Dispatchers.IO) {
+                                lockConnectionManager.getFirmwareVersion(false)
+                            }
                             val readable = response?.toString() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
@@ -128,7 +140,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "getSignedTime" -> {
                     scope.launch {
                         try {
-                            val signedTime = mobileService.getSignedTime()
+                            val signedTime = withContext(Dispatchers.IO) {
+                                mobileService.getSignedTime()
+                            }
                             // SignedTime is an SDK model - use toString() to display it
                             result.success(signedTime.toString())
                         } catch (e: Exception) {
@@ -149,7 +163,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                             val cleanHex = hexCommand.trim().removePrefix("0x").removePrefix("0X")
                             val commandByte = cleanHex.toInt(16).toByte()
 
-                            val response = lockConnectionManager.sendCommand(commandByte)
+                            val response = withContext(Dispatchers.IO) {
+                                lockConnectionManager.sendCommand(commandByte)
+                            }
                             val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: NumberFormatException) {
