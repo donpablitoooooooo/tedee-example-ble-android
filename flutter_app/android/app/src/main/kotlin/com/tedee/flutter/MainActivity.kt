@@ -18,6 +18,9 @@ import tedee.mobile.sdk.ble.extentions.getReadableLockNotification
 import tedee.mobile.sdk.ble.extentions.getReadableLockState
 import tedee.mobile.sdk.ble.extentions.getReadableStatus
 import tedee.mobile.sdk.ble.extentions.print
+import com.tedee.flutter.api.service.MobileService
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class MainActivity : FlutterActivity(), ILockConnectionListener {
     private val CHANNEL = "com.tedee.flutter/lock"
@@ -25,6 +28,7 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
 
     private val lockConnectionManager by lazy { LockConnectionManager(this) }
     private val tedeeFlutterBridge by lazy { TedeeFlutterBridge(this, lockConnectionManager) }
+    private val mobileService by lazy { MobileService() }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -96,6 +100,63 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                             result.success(readable)
                         } catch (e: Exception) {
                             result.error("GET_STATE_FAILED", e.message, null)
+                        }
+                    }
+                }
+                "getDeviceSettings" -> {
+                    scope.launch {
+                        try {
+                            val response = lockConnectionManager.getDeviceSettings()
+                            val readable = response?.print() ?: "No response"
+                            result.success(readable)
+                        } catch (e: Exception) {
+                            result.error("GET_SETTINGS_FAILED", e.message, null)
+                        }
+                    }
+                }
+                "getFirmwareVersion" -> {
+                    scope.launch {
+                        try {
+                            val response = lockConnectionManager.getFirmwareVersion()
+                            val readable = response?.print() ?: "No response"
+                            result.success(readable)
+                        } catch (e: Exception) {
+                            result.error("GET_FIRMWARE_FAILED", e.message, null)
+                        }
+                    }
+                }
+                "getSignedTime" -> {
+                    scope.launch {
+                        try {
+                            val signedTime = mobileService.getSignedTime()
+                            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                            val formattedTime = dateFormat.format(signedTime.utcDateTime)
+                            result.success("UTC: $formattedTime, Signature: ${signedTime.signature}")
+                        } catch (e: Exception) {
+                            result.error("GET_SIGNED_TIME_FAILED", e.message, null)
+                        }
+                    }
+                }
+                "sendCustomCommand" -> {
+                    val hexCommand = call.argument<String>("hexCommand")
+                    if (hexCommand == null) {
+                        result.error("INVALID_ARGS", "Missing hex command", null)
+                        return@setMethodCallHandler
+                    }
+
+                    scope.launch {
+                        try {
+                            // Parse hex command (supports formats like "0x51", "51", "0X51")
+                            val cleanHex = hexCommand.trim().removePrefix("0x").removePrefix("0X")
+                            val commandByte = cleanHex.toInt(16).toByte()
+
+                            val response = lockConnectionManager.sendCommand(commandByte)
+                            val readable = response?.getReadableLockCommandResult() ?: "No response"
+                            result.success(readable)
+                        } catch (e: NumberFormatException) {
+                            result.error("INVALID_HEX", "Invalid hex format: $hexCommand", null)
+                        } catch (e: Exception) {
+                            result.error("SEND_COMMAND_FAILED", e.message, null)
                         }
                     }
                 }

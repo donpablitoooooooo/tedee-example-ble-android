@@ -75,6 +75,48 @@ class TedeeLockService {
     }
   }
 
+  /// Get device settings (unsecure connection required)
+  Future<String> getDeviceSettings() async {
+    try {
+      final String result = await _channel.invokeMethod('getDeviceSettings');
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to get device settings: ${e.message}');
+    }
+  }
+
+  /// Get firmware version (unsecure connection required)
+  Future<String> getFirmwareVersion() async {
+    try {
+      final String result = await _channel.invokeMethod('getFirmwareVersion');
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to get firmware version: ${e.message}');
+    }
+  }
+
+  /// Get signed time from Tedee API
+  Future<String> getSignedTime() async {
+    try {
+      final String result = await _channel.invokeMethod('getSignedTime');
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to get signed time: ${e.message}');
+    }
+  }
+
+  /// Send custom BLE command (hex format: e.g., "0x51" or "51")
+  Future<String> sendCustomCommand(String hexCommand) async {
+    try {
+      final String result = await _channel.invokeMethod('sendCustomCommand', {
+        'hexCommand': hexCommand,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to send command: ${e.message}');
+    }
+  }
+
   /// Set up listener for lock notifications from native side
   void setNotificationListener(Function(String) onNotification) {
     _channel.setMethodCallHandler((call) async {

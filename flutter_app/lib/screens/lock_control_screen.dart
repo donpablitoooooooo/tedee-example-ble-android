@@ -13,12 +13,18 @@ class _LockControlScreenState extends State<LockControlScreen> {
 
   bool _isConnected = false;
   bool _isConnecting = false;
+  bool _keepConnection = true;
   final List<String> _messages = [];
 
-  // Preset values from Constants.kt
-  final String _serialNumber = '10530206-030484';
-  final String _deviceId = '273450';
-  final String _name = 'Lock-40C5';
+  // Editable fields with preset values from Constants.kt
+  final TextEditingController _serialNumberController =
+      TextEditingController(text: '10530206-030484');
+  final TextEditingController _deviceIdController =
+      TextEditingController(text: '273450');
+  final TextEditingController _nameController =
+      TextEditingController(text: 'Lock-40C5');
+  final TextEditingController _customCommandController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -30,6 +36,15 @@ class _LockControlScreenState extends State<LockControlScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _serialNumberController.dispose();
+    _deviceIdController.dispose();
+    _nameController.dispose();
+    _customCommandController.dispose();
+    super.dispose();
+  }
+
   Future<void> _connect() async {
     setState(() {
       _isConnecting = true;
@@ -37,10 +52,10 @@ class _LockControlScreenState extends State<LockControlScreen> {
 
     try {
       final success = await _lockService.connect(
-        serialNumber: _serialNumber,
-        deviceId: _deviceId,
-        name: _name,
-        keepConnection: true,
+        serialNumber: _serialNumberController.text,
+        deviceId: _deviceIdController.text,
+        name: _nameController.text,
+        keepConnection: _keepConnection,
       );
 
       setState(() {
@@ -124,6 +139,66 @@ class _LockControlScreenState extends State<LockControlScreen> {
     }
   }
 
+  Future<void> _getDeviceSettings() async {
+    try {
+      final result = await _lockService.getDeviceSettings();
+      setState(() {
+        _messages.insert(0, '⚙️ Device Settings: $result');
+      });
+    } catch (e) {
+      setState(() {
+        _messages.insert(0, '❌ Get settings failed: $e');
+      });
+    }
+  }
+
+  Future<void> _getFirmwareVersion() async {
+    try {
+      final result = await _lockService.getFirmwareVersion();
+      setState(() {
+        _messages.insert(0, '📱 Firmware Version: $result');
+      });
+    } catch (e) {
+      setState(() {
+        _messages.insert(0, '❌ Get firmware failed: $e');
+      });
+    }
+  }
+
+  Future<void> _getSignedTime() async {
+    try {
+      final result = await _lockService.getSignedTime();
+      setState(() {
+        _messages.insert(0, '🕐 Signed Time: $result');
+      });
+    } catch (e) {
+      setState(() {
+        _messages.insert(0, '❌ Get signed time failed: $e');
+      });
+    }
+  }
+
+  Future<void> _sendCustomCommand() async {
+    final command = _customCommandController.text.trim();
+    if (command.isEmpty) {
+      setState(() {
+        _messages.insert(0, '❌ Please enter a command');
+      });
+      return;
+    }
+
+    try {
+      final result = await _lockService.sendCustomCommand(command);
+      setState(() {
+        _messages.insert(0, '📤 Custom Command ($command): $result');
+      });
+    } catch (e) {
+      setState(() {
+        _messages.insert(0, '❌ Send command failed: $e');
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,152 +208,404 @@ class _LockControlScreenState extends State<LockControlScreen> {
       ),
       body: Column(
         children: [
-          // Connection Section
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Configuration Section
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Lock Configuration',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _serialNumberController,
+                              decoration: const InputDecoration(
+                                labelText: 'Serial Number',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.tag),
+                              ),
+                              enabled: !_isConnected,
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _deviceIdController,
+                              decoration: const InputDecoration(
+                                labelText: 'Device ID',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.fingerprint),
+                              ),
+                              keyboardType: TextInputType.number,
+                              enabled: !_isConnected,
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Lock Name',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.label),
+                              ),
+                              enabled: !_isConnected,
+                            ),
+                            const SizedBox(height: 16),
+                            SwitchListTile(
+                              title: const Text('Keep Connection'),
+                              subtitle: const Text(
+                                'Maintain indefinite connection to lock',
+                              ),
+                              value: _keepConnection,
+                              onChanged: _isConnected
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _keepConnection = value;
+                                      });
+                                    },
+                              activeColor: const Color(0xFF22345a),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Connection Status & Controls
+                    Card(
+                      color: _isConnected ? Colors.green[50] : Colors.grey[100],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            Text(
+                              _isConnecting
+                                  ? 'Connecting...'
+                                  : _isConnected
+                                      ? '✅ Connected'
+                                      : '⚫ Disconnected',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: _isConnected ? Colors.green : Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: _isConnecting || _isConnected
+                                      ? null
+                                      : _connect,
+                                  icon: const Icon(Icons.bluetooth_connected),
+                                  label: const Text('Connect'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _isConnected ? _disconnect : null,
+                                  icon: const Icon(Icons.bluetooth_disabled),
+                                  label: const Text('Disconnect'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Lock Control Commands
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Lock Commands',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isConnected ? _openLock : null,
+                                    icon: const Icon(Icons.lock_open),
+                                    label: const Text('Open'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      padding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isConnected ? _closeLock : null,
+                                    icon: const Icon(Icons.lock),
+                                    label: const Text('Close'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      padding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isConnected ? _pullSpring : null,
+                                    icon: const Icon(
+                                      Icons.settings_input_component,
+                                    ),
+                                    label: const Text('Pull Spring'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      padding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isConnected ? _getLockState : null,
+                                    icon: const Icon(Icons.info),
+                                    label: const Text('Get State'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      padding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Device Information Commands
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Device Information',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isConnected
+                                        ? _getDeviceSettings
+                                        : null,
+                                    icon: const Icon(Icons.settings),
+                                    label: const Text('Device Settings'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.purple,
+                                      padding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isConnected
+                                        ? _getFirmwareVersion
+                                        : null,
+                                    icon: const Icon(Icons.system_update),
+                                    label: const Text('Firmware'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.teal,
+                                      padding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _getSignedTime,
+                                icon: const Icon(Icons.access_time),
+                                label: const Text('Get Signed Time'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.indigo,
+                                  padding: const EdgeInsets.all(16),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Custom Command Section
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Send Custom Command',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _customCommandController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Hex Command',
+                                      hintText: 'e.g., 0x51 or 51',
+                                      border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.code),
+                                    ),
+                                    enabled: _isConnected,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  onPressed: _isConnected
+                                      ? _sendCustomCommand
+                                      : null,
+                                  icon: const Icon(Icons.send),
+                                  label: const Text('Send'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.deepOrange,
+                                    padding: const EdgeInsets.all(16),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Common commands: 0x50 (Lock), 0x51 (Unlock), 0x52 (Pull Spring)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Messages Log
           Container(
-            padding: const EdgeInsets.all(16.0),
-            color: Colors.grey[100],
+            height: 200,
+            color: Colors.black87,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _isConnecting
-                      ? 'Connecting...'
-                      : _isConnected
-                          ? '✅ Connected'
-                          : '⚫ Disconnected',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: _isConnected ? Colors.green : Colors.grey,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.grey[900],
+                  child: const Row(
+                    children: [
+                      Icon(Icons.message, color: Colors.white, size: 16),
+                      SizedBox(width: 8),
+                      Text(
+                        'Messages Log',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '$_name ($_serialNumber)',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _isConnecting || _isConnected ? null : _connect,
-                      child: const Text('Connect'),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _isConnected ? _disconnect : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                      ),
-                      child: const Text('Disconnect'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Control Buttons
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isConnected ? _openLock : null,
-                        icon: const Icon(Icons.lock_open),
-                        label: const Text('Open'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          padding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isConnected ? _closeLock : null,
-                        icon: const Icon(Icons.lock),
-                        label: const Text('Close'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          padding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isConnected ? _pullSpring : null,
-                        icon: const Icon(Icons.settings_input_component),
-                        label: const Text('Pull Spring'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          padding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isConnected ? _getLockState : null,
-                        icon: const Icon(Icons.info),
-                        label: const Text('Get State'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Messages List
-          Expanded(
-            child: Container(
-              color: Colors.black87,
-              child: _messages.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No messages yet',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: Colors.grey[800]!),
-                            ),
-                          ),
+                Expanded(
+                  child: _messages.isEmpty
+                      ? const Center(
                           child: Text(
-                            _messages[index],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontFamily: 'monospace',
-                              fontSize: 12,
-                            ),
+                            'No messages yet',
+                            style: TextStyle(color: Colors.grey),
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      : ListView.builder(
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[800]!),
+                                ),
+                              ),
+                              child: Text(
+                                _messages[index],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
           ),
         ],
