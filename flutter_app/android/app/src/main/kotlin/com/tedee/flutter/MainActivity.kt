@@ -92,7 +92,7 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                     scope.launch {
                         try {
                             val response = lockConnectionManager.getLockState()
-                            val readable = response?.getReadableLockStatusResult() ?: "No response"
+                            val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
                             result.error("GET_STATE_FAILED", e.message, null)

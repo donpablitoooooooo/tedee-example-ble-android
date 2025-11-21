@@ -55,7 +55,7 @@ class TedeeFlutterBridge(
                     serialNumber = serialNumber,
                     deviceCertificate = certificate,
                     keepConnection = keepConnection,
-                    listener = listener
+                    secureConnectionListener = listener
                 )
 
                 Timber.d("TedeeFlutterBridge: Connection initiated successfully")
