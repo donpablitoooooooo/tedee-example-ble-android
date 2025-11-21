@@ -667,11 +667,13 @@ android {
 
 ## Quick Command Reference
 
-### BLE Command Bytes (from Tedee BLE API)
-- `0x51` - Unlock lock
-- `0x52` - Lock lock
-- `0x53` - Pull spring
+### BLE Command Bytes (Tedee Cylinders)
+- `0x50` - Lock (close)
+- `0x51` - Unlock (open)
+- `0x52` - Pull spring
 - `0x54` - Get lock state
+
+**Note:** These commands are for Tedee cylinders. Standard Tedee locks may use different command codes. The app now uses direct BLE commands (`sendCommand()`) instead of SDK methods to ensure compatibility with cylinders.
 
 ### Lock States (from notifications)
 - `0x02` - Opened (unlocked)

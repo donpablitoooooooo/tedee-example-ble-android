@@ -76,7 +76,9 @@ class MainActivity : AppCompatActivity(),
     uiSetupHelper.setupOpenLockClickListener {
       lifecycleScope.launch {
         try {
-          lockConnectionManager.openLock()
+          // Use direct BLE command 0x51 for cylinder unlock
+          val result = lockConnectionManager.sendCommand(byteArrayOf(0x51))
+          uiSetupHelper.addMessage("Open lock command sent: ${result?.print()}")
         } catch (e: Exception) {
           uiSetupHelper.onFailureRequest(e)
         }
@@ -85,7 +87,9 @@ class MainActivity : AppCompatActivity(),
     uiSetupHelper.setupCloseLockClickListener {
       lifecycleScope.launch {
         try {
-          lockConnectionManager.closeLock()
+          // Use direct BLE command 0x50 for cylinder lock
+          val result = lockConnectionManager.sendCommand(byteArrayOf(0x50))
+          uiSetupHelper.addMessage("Close lock command sent: ${result?.print()}")
         } catch (e: Exception) {
           uiSetupHelper.onFailureRequest(e)
         }
@@ -94,7 +98,9 @@ class MainActivity : AppCompatActivity(),
     uiSetupHelper.setupPullLockClickListener {
       lifecycleScope.launch {
         try {
-          lockConnectionManager.pullSpring()
+          // Use direct BLE command 0x52 for pull spring
+          val result = lockConnectionManager.sendCommand(byteArrayOf(0x52))
+          uiSetupHelper.addMessage("Pull spring command sent: ${result?.print()}")
         } catch (e: Exception) {
           uiSetupHelper.onFailureRequest(e)
         }
