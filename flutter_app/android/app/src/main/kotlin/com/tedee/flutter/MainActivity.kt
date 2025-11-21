@@ -83,7 +83,8 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "openLock" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.sendCommand(0x51.toByte())
+                            // Explicitly provide null for params to avoid DefaultImpls lookup
+                            val response = lockConnectionManager.sendCommand(0x51.toByte(), null)
                             val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
@@ -94,7 +95,8 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "closeLock" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.sendCommand(0x50.toByte())
+                            // Explicitly provide null for params to avoid DefaultImpls lookup
+                            val response = lockConnectionManager.sendCommand(0x50.toByte(), null)
                             val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
@@ -105,7 +107,8 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "pullSpring" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.sendCommand(0x52.toByte())
+                            // Explicitly provide null for params to avoid DefaultImpls lookup
+                            val response = lockConnectionManager.sendCommand(0x52.toByte(), null)
                             val readable = response?.getReadableLockCommandResult() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
