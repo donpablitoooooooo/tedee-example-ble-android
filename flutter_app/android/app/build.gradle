@@ -41,15 +41,17 @@ android {
         targetSdk 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        multiDexEnabled true  // Enable Multidex for SDK compatibility
     }
 
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            minifyEnabled false  // Disable R8/ProGuard
+            shrinkResources false
         }
         debug {
-            proguardFiles 'proguard-rules.pro'
+            minifyEnabled false  // Disable R8 in debug
         }
     }
 }
