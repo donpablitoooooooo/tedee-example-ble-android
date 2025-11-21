@@ -76,7 +76,9 @@ class MainActivity : AppCompatActivity(),
     uiSetupHelper.setupOpenLockClickListener {
       lifecycleScope.launch {
         try {
-          lockConnectionManager.openLock()
+          // Use direct BLE command 0x51 for cylinder unlock
+          val result = lockConnectionManager.sendCommand(byteArrayOf(0x51))
+          uiSetupHelper.addMessage("Open lock command sent: ${result?.print()}")
         } catch (e: Exception) {
           uiSetupHelper.onFailureRequest(e)
         }
@@ -85,7 +87,9 @@ class MainActivity : AppCompatActivity(),
     uiSetupHelper.setupCloseLockClickListener {
       lifecycleScope.launch {
         try {
-          lockConnectionManager.closeLock()
+          // Use direct BLE command 0x50 for cylinder lock
+          val result = lockConnectionManager.sendCommand(byteArrayOf(0x50))
+          uiSetupHelper.addMessage("Close lock command sent: ${result?.print()}")
         } catch (e: Exception) {
           uiSetupHelper.onFailureRequest(e)
         }
@@ -94,7 +98,9 @@ class MainActivity : AppCompatActivity(),
     uiSetupHelper.setupPullLockClickListener {
       lifecycleScope.launch {
         try {
-          lockConnectionManager.pullSpring()
+          // Use direct BLE command 0x52 for pull spring
+          val result = lockConnectionManager.sendCommand(byteArrayOf(0x52))
+          uiSetupHelper.addMessage("Pull spring command sent: ${result?.print()}")
         } catch (e: Exception) {
           uiSetupHelper.onFailureRequest(e)
         }
@@ -140,8 +146,37 @@ class MainActivity : AppCompatActivity(),
   override fun onNotification(message: ByteArray) {
     if (message.isEmpty()) return
     Timber.d("LOCK LISTENER: notification: ${message.print()}")
+
+    // Detailed hex dump for debugging
+    val hexBytes = message.joinToString(" ") { byte -> "0x%02X".format(byte) }
+    Timber.d("LOCK LISTENER: notification bytes: $hexBytes")
+
     val readableNotification = message.getReadableLockNotification()
-    val formattedText = "onNotification: \n$readableNotification"
+
+    // Add detailed info for unknown notifications
+    val formattedText = if (readableNotification.contains("unknown", ignoreCase = true)) {
+      val firstByte = message.first()
+      val firstByteHex = "0x%02X".format(firstByte.toInt() and 0xFF)
+      val secondByteInfo = if (message.size > 1) {
+        val secondByte = message[1]
+        val secondByteHex = "0x%02X".format(secondByte.toInt() and 0xFF)
+        "$secondByte ($secondByteHex)"
+      } else {
+        "N/A"
+      }
+      """
+      onNotification: $readableNotification
+
+      DEBUG INFO:
+      - First byte (command): $firstByte ($firstByteHex)
+      - Second byte (status): $secondByteInfo
+      - Total bytes: ${message.size}
+      - Full hex: $hexBytes
+      """.trimIndent()
+    } else {
+      "onNotification: \n$readableNotification"
+    }
+
     uiSetupHelper.addMessage(formattedText)
   }
 
