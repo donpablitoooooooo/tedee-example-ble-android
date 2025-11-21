@@ -667,23 +667,90 @@ android {
 
 ## Quick Command Reference
 
-### BLE Command Bytes (Tedee Cylinders)
-- `0x50` - Lock (close)
-- `0x51` - Unlock (open)
-- `0x52` - Pull spring
-- `0x54` - Get lock state
+### BLE Command Codes - Complete List
 
-**Note:** These commands are for Tedee cylinders. Standard Tedee locks may use different command codes. The app now uses direct BLE commands (`sendCommand()`) instead of SDK methods to ensure compatibility with cylinders.
+All commands require a PTLS (secure) session unless noted otherwise.
 
-### Lock States (from notifications)
-- `0x02` - Opened (unlocked)
-- `0x03` - Closed (locked)
-- `0x04` - Opening
-- `0x05` - Closing
+#### **Operations Commands**
+- `0x50` - **LOCK** - Lock the lock
+  - Parameters: `0x00` = None, `0x02` = Force (emergency)
+- `0x51` - **UNLOCK** - Unlock the lock
+  - Parameters: `0x00` = None, `0x01` = Auto, `0x02` = Force (emergency)
+- `0x52` - **PULL_SPRING** - Pull the spring latch
+  - Parameters: None
 
-### API Result Codes
-- `0x00` - Success
-- Other values indicate specific errors (see BLE API docs)
+#### **State & Information Commands**
+- `0x5A` - **GET_STATE** - Get current lock state and jam status
+  - Returns: Lock state (unlocked/locked/pulling/etc.) + jam status
+- `0x0C` - **GET_BATTERY** - Get battery level and charging status
+  - Returns: Battery % (0-100) + charging status (0=discharging, 1=charging)
+
+#### **Calibration Commands**
+- `0x53` - **CALIBRATION_INIT** - Initialize calibration process
+- `0x54` - **CALIBRATE_LOCKED** - Calibrate locked position
+- `0x55` - **CALIBRATE_UNLOCKED** - Calibrate unlocked position
+- `0x56` - **CALIBRATION_CANCEL** - Cancel calibration
+
+#### **Pull Spring Calibration Commands**
+- `0x57` - **PULL_CALIBRATION_INIT** - Initialize pull spring calibration
+- `0x58` - **PULL_CALIBRATION_START** - Start pull spring calibration
+- `0x59` - **PULL_CALIBRATION_CANCEL** - Cancel pull spring calibration
+
+#### **Activity Logs Commands**
+- `0x2D` - **GET_LOGS_TLV** - Retrieve activity logs in TLV format
+  - Result codes:
+    - `0x00` = SUCCESS (more logs available)
+    - `0x04` = NOT_FOUND (last/empty package)
+    - `0x03` = BUSY (retry in 100-500ms)
+    - `0x02` = ERROR (MTU too small)
+    - `0x07` = NO_PERMISSION
+
+#### **Security Commands**
+- `0x71` - **SET_SIGNED_DATETIME** - Set trusted date/time from API
+
+### BLE Notifications (from Lock to App)
+
+Notifications are sent by the lock to inform about state changes and events:
+
+- `0xA5` - **HAS_LOGS** - Activity logs are ready to be collected
+  - Triggered after connection, indicates logs waiting to download
+- `0xBA` - **LOCK_STATUS_CHANGE** - Lock state has changed
+  - Contains current lock state and operation result
+
+### Lock States (in notifications)
+- `0x00` - **UNCALIBRATED** - Lock not calibrated
+- `0x01` - **CALIBRATION** - Calibration in progress
+- `0x02` - **UNLOCKED** - Lock is unlocked (opened)
+- `0x03` - **PARTIALLY_UNLOCKED** - Partially unlocked position
+- `0x04` - **UNLOCKING** - Unlock operation in progress
+- `0x05` - **LOCKING** - Lock operation in progress
+- `0x06` - **LOCKED** - Lock is locked (closed)
+- `0x07` - **PULL_SPRING** - Pull spring position
+- `0x08` - **PULLING** - Pull spring operation in progress
+- `0x09` - **UNKNOWN** - Unknown state
+
+### Common Result Codes
+- `0x00` - **SUCCESS** - Operation accepted/successful
+- `0x01` - **INVALID_PARAM** - Invalid parameters
+- `0x02` - **ERROR** - Operation error
+- `0x03` - **BUSY** - Lock performing other operations
+- `0x04` - **NOT_FOUND** - Resource not found
+- `0x05` - **NOT_CALIBRATED** - Lock needs calibration
+- `0x07` - **NO_PERMISSION** - Insufficient permissions
+- `0x08` - **NOT_CONFIGURED** - Feature not configured
+- `0x09` - **DISMOUNTED** - Lock not mounted on door
+
+### Important Notes
+
+**Cylinder vs Standard Lock:**
+- Tedee **cylinders** use the codes listed above (confirmed working)
+- Standard Tedee **locks** may use different command codes for some operations
+- The app uses direct BLE commands (`sendCommand()`) for cylinder compatibility
+
+**SDK Methods:**
+- `getDeviceSettings()` and `getFirmwareVersion()` are SDK helper methods
+- These are NOT direct BLE commands but may use internal/undocumented codes
+- They may only work during unsecured connection (device registration)
 
 ## Code Style Guidelines
 
