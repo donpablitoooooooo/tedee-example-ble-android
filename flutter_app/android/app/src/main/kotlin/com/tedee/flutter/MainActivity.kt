@@ -24,11 +24,8 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
     private var methodChannel: MethodChannel? = null
 
     private val lockConnectionManager by lazy { LockConnectionManager(this) }
+    private val tedeeFlutterBridge by lazy { TedeeFlutterBridge(this, lockConnectionManager) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
-    // Use the CertificateManager and other services from the existing Android app
-    // For simplicity, we'll inline certificate generation here
-    // In production, you'd extract these to a shared module
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -116,28 +113,19 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
     ) {
         scope.launch {
             try {
-                // Here you need to get or generate the certificate
-                // For now, we'll use a simplified version
-                // In production, integrate with CertificateManager from the original app
-
-                val personalAccessKey = "snwu6R.eC+Xuad0sx5inRRo0AaZkYe+EURqYpWwrDR3lU5kuNc="
-
-                // TODO: Implement certificate generation/retrieval
-                // This requires integrating with the existing CertificateManager
-                // For now, return error indicating certificate setup is needed
-
-                result.error(
-                    "NOT_IMPLEMENTED",
-                    "Certificate generation needs to be integrated from the existing Android app",
-                    null
+                // Use TedeeFlutterBridge to handle certificate generation and connection
+                tedeeFlutterBridge.connect(
+                    serialNumber = serialNumber,
+                    deviceId = deviceId,
+                    name = name,
+                    keepConnection = keepConnection,
+                    listener = this@MainActivity
                 )
 
-                // When implemented, it should look like:
-                // val certificate = certificateManager.getCertificate(serialNumber, deviceId)
-                // lockConnectionManager.connect(serialNumber, certificate, keepConnection, this@MainActivity)
-                // result.success(true)
-
+                Timber.d("MainActivity: Connection successful")
+                result.success(true)
             } catch (e: Exception) {
+                Timber.e(e, "MainActivity: Connection failed")
                 result.error("CONNECT_FAILED", e.message, null)
             }
         }
