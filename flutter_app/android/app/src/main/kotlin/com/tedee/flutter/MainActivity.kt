@@ -20,6 +20,7 @@ import tedee.mobile.sdk.ble.extentions.getReadableLockState
 import tedee.mobile.sdk.ble.extentions.getReadableStatus
 import tedee.mobile.sdk.ble.extentions.print
 import com.tedee.flutter.api.service.MobileService
+import tedee.mobile.sdk.ble.permissions.getBluetoothPermissions
 
 class MainActivity : FlutterActivity(), ILockConnectionListener {
     private val CHANNEL = "com.tedee.flutter/lock"
@@ -29,6 +30,13 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
     private val tedeeFlutterBridge by lazy { TedeeFlutterBridge(this, lockConnectionManager) }
     private val mobileService by lazy { MobileService() }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Request Bluetooth permissions
+        requestPermissions(getBluetoothPermissions().toTypedArray(), 9)
+    }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
