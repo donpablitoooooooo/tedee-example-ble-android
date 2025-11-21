@@ -146,8 +146,37 @@ class MainActivity : AppCompatActivity(),
   override fun onNotification(message: ByteArray) {
     if (message.isEmpty()) return
     Timber.d("LOCK LISTENER: notification: ${message.print()}")
+
+    // Detailed hex dump for debugging
+    val hexBytes = message.joinToString(" ") { byte -> "0x%02X".format(byte) }
+    Timber.d("LOCK LISTENER: notification bytes: $hexBytes")
+
     val readableNotification = message.getReadableLockNotification()
-    val formattedText = "onNotification: \n$readableNotification"
+
+    // Add detailed info for unknown notifications
+    val formattedText = if (readableNotification.contains("unknown", ignoreCase = true)) {
+      val firstByte = message.first()
+      val firstByteHex = "0x%02X".format(firstByte.toInt() and 0xFF)
+      val secondByteInfo = if (message.size > 1) {
+        val secondByte = message[1]
+        val secondByteHex = "0x%02X".format(secondByte.toInt() and 0xFF)
+        "$secondByte ($secondByteHex)"
+      } else {
+        "N/A"
+      }
+      """
+      onNotification: $readableNotification
+
+      DEBUG INFO:
+      - First byte (command): $firstByte ($firstByteHex)
+      - Second byte (status): $secondByteInfo
+      - Total bytes: ${message.size}
+      - Full hex: $hexBytes
+      """.trimIndent()
+    } else {
+      "onNotification: \n$readableNotification"
+    }
+
     uiSetupHelper.addMessage(formattedText)
   }
 
