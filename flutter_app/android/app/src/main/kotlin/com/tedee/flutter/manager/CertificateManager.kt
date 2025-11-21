@@ -47,7 +47,7 @@ class CertificateManager(
 
         // Get mobile public key
         val mobilePublicKey = DataStoreManager.getMobilePublicKey(context)
-          ?: getMobilePublicKey(context)
+          ?: getMobilePublicKey()
           ?: throw Exception("Failed to get mobile public key")
 
         // Register mobile device
