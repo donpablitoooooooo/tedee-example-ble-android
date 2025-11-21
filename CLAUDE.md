@@ -5,11 +5,14 @@ This document provides comprehensive guidance for AI assistants working with the
 ## Project Overview
 
 **Project Name:** Tedee Demo (Tedee Lock Communication Example)
-**Language:** Kotlin
+**Language:** Kotlin 2.1.0
 **Platform:** Android
 **Min SDK:** 26 (Android 8.0+)
-**Target SDK:** 34 (Android 14)
-**Build System:** Gradle
+**Target SDK:** 35 (Android 15)
+**Compile SDK:** 35
+**App Version:** 2.0 (versionCode: 2)
+**Build System:** Gradle (AGP 8.7.3)
+**Java Version:** 17
 **Primary Purpose:** Demonstration app showing Bluetooth Low Energy (BLE) communication with Tedee smart locks using the Tedee Lock SDK
 
 ### Important Context
@@ -119,22 +122,24 @@ tedee-example-ble-android/
 implementation('com.github.tedee-com:tedee-mobile-sdk-android:1.0.0@aar') { transitive = true }
 
 // Networking
-implementation "com.squareup.retrofit2:retrofit:2.9.0"
-implementation "com.squareup.retrofit2:converter-gson:2.9.0"
-implementation "com.squareup.okhttp3:logging-interceptor:4.11.0"
+implementation "com.squareup.retrofit2:retrofit:2.11.0"
+implementation "com.squareup.retrofit2:converter-gson:2.11.0"
+implementation "com.squareup.okhttp3:logging-interceptor:4.12.0"
 
 // Storage
-implementation "androidx.datastore:datastore-preferences:1.0.0"
+implementation "androidx.datastore:datastore-preferences:1.2.0"
 
 // Logging
 implementation "com.jakewharton.timber:timber:5.0.1"
 
 // Android Framework
-implementation 'androidx.core:core-ktx:1.12.0'
-implementation 'androidx.appcompat:appcompat:1.6.1'
-implementation 'com.google.android.material:material:1.11.0'
-implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+implementation 'androidx.core:core-ktx:1.15.0'
+implementation 'androidx.appcompat:appcompat:1.7.1'
+implementation 'com.google.android.material:material:1.12.0'
+implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
 ```
+
+**Note:** AndroidX Core 1.15.0 requires `compileSdk 35` or higher.
 
 ## Core Data Flows
 
@@ -564,6 +569,27 @@ override fun onDestroy() {
 }
 ```
 
+### 9. Kotlin 2.1.0 Type Safety
+Kotlin 2.1.0 has stricter type checking for byte literals. When using BLE commands:
+
+**Correct** - Use `.toByte()` for hex literals:
+```kotlin
+lockConnectionManager.sendCommand(0x51.toByte())  // ✓ Correct
+```
+
+**Incorrect** - Will cause type mismatch error:
+```kotlin
+lockConnectionManager.sendCommand(byteArrayOf(0x51))  // ✗ Wrong - expects Byte, not ByteArray
+lockConnectionManager.sendCommand(0x51)               // ✗ Wrong - expects Byte, not Int
+```
+
+**Important for Cylinder Commands:**
+- Open (unlock): `sendCommand(0x51.toByte())`
+- Close (lock): `sendCommand(0x50.toByte())`
+- Pull spring: `sendCommand(0x52.toByte())`
+
+Note: SDK helper methods like `openLock()` and `closeLock()` may not work with cylinders. Use direct BLE commands instead.
+
 ## API Reference
 
 ### Tedee API Base URL
@@ -629,20 +655,34 @@ fun clear()
 ### Build Configuration
 ```gradle
 android {
-    compileSdk 34
+    compileSdk 35
     minSdk 26
-    targetSdk 34
+    targetSdk 35
+
+    defaultConfig {
+        versionCode 2
+        versionName "2.0"
+    }
 
     buildFeatures {
         viewBinding true
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
     }
 }
 ```
+
+**Important:**
+- Java 17 is required for modern Android development (AGP 8.7.3, Kotlin 2.1.0)
+- `compileSdk 35` is required by AndroidX Core 1.15.0
+- `jvmTarget` must match Java version for Kotlin compatibility
 
 ### Build Variants
 - **Debug**: Full debug info, debug signing
