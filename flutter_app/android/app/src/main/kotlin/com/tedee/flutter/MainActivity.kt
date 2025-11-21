@@ -21,6 +21,9 @@ import tedee.mobile.sdk.ble.extentions.getReadableStatus
 import tedee.mobile.sdk.ble.extentions.print
 import com.tedee.flutter.api.service.MobileService
 import tedee.mobile.sdk.ble.permissions.getBluetoothPermissions
+import com.polidea.rxandroidble2.exceptions.BleException
+import io.reactivex.exceptions.UndeliverableException
+import io.reactivex.plugins.RxJavaPlugins
 
 class MainActivity : FlutterActivity(), ILockConnectionListener {
     private val CHANNEL = "com.tedee.flutter/lock"
@@ -34,8 +37,20 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Set up RxJava error handler for BLE exceptions
+        RxJavaPlugins.setErrorHandler { throwable ->
+            if (throwable is UndeliverableException && throwable.cause is BleException) {
+                return@setErrorHandler // ignore BleExceptions since we do not have subscriber
+            } else {
+                throw throwable
+            }
+        }
+
         // Request Bluetooth permissions
         requestPermissions(getBluetoothPermissions().toTypedArray(), 9)
+
+        // Set up SignedTimeProvider for lock connection
+        lockConnectionManager.signedDateTimeProvider = SignedTimeProvider(scope)
     }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
