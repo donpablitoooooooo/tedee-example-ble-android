@@ -485,10 +485,11 @@ class _LockControlScreenState extends State<LockControlScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    // const SizedBox(height: 16),
 
-                    // Custom Command Section
-                    Card(
+                    // Custom Command Section - TEMPORARILY DISABLED
+                    // TODO: Re-enable when Kotlin/SDK compatibility issue is resolved
+                    /* Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -541,7 +542,7 @@ class _LockControlScreenState extends State<LockControlScreen> {
                           ],
                         ),
                       ),
-                    ),
+                    ), */
                   ],
                 ),
               ),
