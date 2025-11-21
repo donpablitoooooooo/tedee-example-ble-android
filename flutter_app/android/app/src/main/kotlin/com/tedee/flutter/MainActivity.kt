@@ -19,8 +19,6 @@ import tedee.mobile.sdk.ble.extentions.getReadableLockState
 import tedee.mobile.sdk.ble.extentions.getReadableStatus
 import tedee.mobile.sdk.ble.extentions.print
 import com.tedee.flutter.api.service.MobileService
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 class MainActivity : FlutterActivity(), ILockConnectionListener {
     private val CHANNEL = "com.tedee.flutter/lock"
@@ -106,8 +104,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "getDeviceSettings" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.getDeviceSettings()
-                            val readable = response?.print() ?: "No response"
+                            // Pass false = lock is already connected (not being added)
+                            val response = lockConnectionManager.getDeviceSettings(false)
+                            val readable = response?.toString() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
                             result.error("GET_SETTINGS_FAILED", e.message, null)
@@ -117,8 +116,9 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                 "getFirmwareVersion" -> {
                     scope.launch {
                         try {
-                            val response = lockConnectionManager.getFirmwareVersion()
-                            val readable = response?.print() ?: "No response"
+                            // Pass false = lock is already connected (not being added)
+                            val response = lockConnectionManager.getFirmwareVersion(false)
+                            val readable = response?.toString() ?: "No response"
                             result.success(readable)
                         } catch (e: Exception) {
                             result.error("GET_FIRMWARE_FAILED", e.message, null)
@@ -129,9 +129,8 @@ class MainActivity : FlutterActivity(), ILockConnectionListener {
                     scope.launch {
                         try {
                             val signedTime = mobileService.getSignedTime()
-                            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                            val formattedTime = dateFormat.format(signedTime.utcDateTime)
-                            result.success("UTC: $formattedTime, Signature: ${signedTime.signature}")
+                            // SignedTime is an SDK model - use toString() to display it
+                            result.success(signedTime.toString())
                         } catch (e: Exception) {
                             result.error("GET_SIGNED_TIME_FAILED", e.message, null)
                         }
